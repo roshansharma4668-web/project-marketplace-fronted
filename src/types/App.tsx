@@ -887,7 +887,7 @@ const [student, setStudent] = useState<StudentProfile>(() => {
     );
   };
 
-  const renderAuthAndVerificationPage = (mode: 'login' | 'signup' | 'verification') => {
+ const renderAuthAndVerificationPage = (mode: 'login' | 'signup' | 'verification') => {
     if (mode === 'verification') {
       return (
         <div className="max-w-xl mx-auto py-12 px-4">
@@ -905,12 +905,12 @@ const [student, setStudent] = useState<StudentProfile>(() => {
                   ? 'Verification Approved'
                   : student.authState === 'verification_rejected'
                   ? 'Verification Rejected'
-                  : 'Verification Pending'}
+                  : 'Verification Pending (Required)'}
               </span>
             </div>
 
             <p className="text-xs text-slate-600 mb-6 leading-relaxed">
-              To protect academic integrity, PPT previews and project guidance meetings are restricted to verified college/university students. Uploaded IDs are never displayed publicly.
+              <strong>Mandatory Step:</strong> To unlock 5 protected PPT preview hearts (♥) and guidance meeting booking, you must upload your valid college or university student ID card. Unverified accounts cannot preview projects.
             </p>
 
             <div className="space-y-4">
@@ -918,8 +918,8 @@ const [student, setStudent] = useState<StudentProfile>(() => {
                 <label className="block text-xs font-bold text-slate-700 mb-1">College / University / Institute Name</label>
                 <input
                   type="text"
-                  value={student.collegeName}
-                  onChange={(e) => setStudent({ ...student, collegeName: e.target.value })}
+                  id="verify-college"
+                  placeholder="e.g. National Institute of Technology"
                   className="w-full px-3.5 py-2 text-sm border border-slate-300 rounded-lg"
                 />
               </div>
@@ -930,10 +930,17 @@ const [student, setStudent] = useState<StudentProfile>(() => {
                 </label>
                 <div className="border-2 border-dashed border-slate-300 rounded-xl p-6 text-center bg-slate-50">
                   <Upload className="w-8 h-8 text-indigo-600 mx-auto mb-2" />
-                  <p className="text-xs font-semibold text-slate-700">
-                    Selected File: <span className="font-mono text-indigo-600">{student.idDocumentName || 'college_id_card.pdf'}</span>
-                  </p>
-                  <p className="text-[11px] text-slate-500 mt-1">
+                  <input
+                    type="file"
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files[0]) {
+                        setStudent(prev => ({ ...prev, idDocumentName: e.target.files![0].name }));
+                        showToast('Student ID file selected successfully.', 'info');
+                      }
+                    }}
+                    className="text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+                  />
+                  <p className="text-[11px] text-slate-500 mt-2">
                     Encrypted upload • Accessible only to authorized verification administrators
                   </p>
                 </div>
@@ -942,23 +949,18 @@ const [student, setStudent] = useState<StudentProfile>(() => {
               <div className="flex flex-wrap gap-3 pt-2">
                 <button
                   onClick={() => {
-                    setStudent({ ...student, authState: 'verification_pending' });
-                    showToast('Student ID submitted! Status is now Verification Pending.', 'info');
+                    const collegeInput = (document.getElementById('verify-college') as HTMLInputElement)?.value;
+                    setStudent((prev) => ({
+                      ...prev,
+                      collegeName: collegeInput || 'Verified Institute',
+                      authState: 'verification_pending'
+                    }));
+                    showToast('Student ID submitted successfully! Status: Verification Pending.', 'info');
                     navigate('dashboard');
                   }}
                   className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl"
                 >
                   Submit for Verification
-                </button>
-                <button
-                  onClick={() => {
-                    setStudent({ ...student, authState: 'verified' });
-                    showToast('Admin approved your Student ID!', 'success');
-                    navigate('dashboard');
-                  }}
-                  className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl"
-                >
-                  Simulate Admin Approval
                 </button>
               </div>
             </div>
@@ -966,6 +968,86 @@ const [student, setStudent] = useState<StudentProfile>(() => {
         </div>
       );
     }
+
+    return (
+      <div className="max-w-md mx-auto py-12 px-4">
+        <div className="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm space-y-5">
+          <div>
+            <h1 className="text-xl font-bold text-slate-900">
+              {mode === 'login' ? 'Student Login' : 'Create Student Account'}
+            </h1>
+            <p className="text-xs text-slate-600 mt-1">
+              {mode === 'login'
+                ? 'Sign in with your registered credentials.'
+                : 'Register your student profile. Mandatory ID verification is required in the next step.'}
+            </p>
+          </div>
+
+          {mode === 'signup' && (
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Full Name</label>
+              <input
+                type="text"
+                id="signup-name"
+                placeholder="e.g. Rahul Kumar"
+                className="w-full px-3.5 py-2 text-sm border border-slate-300 rounded-lg"
+              />
+            </div>
+          )}
+
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1">Email Address / Mobile Number</label>
+            <input
+              type="text"
+              id="auth-email"
+              placeholder="e.g. student@university.ac.in"
+              className="w-full px-3.5 py-2 text-sm border border-slate-300 rounded-lg"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1">Password</label>
+            <input
+              type="password"
+              placeholder="Enter secure password"
+              className="w-full px-3.5 py-2 text-sm border border-slate-300 rounded-lg"
+            />
+          </div>
+
+          <button
+            onClick={() => {
+              const nameInput = (document.getElementById('signup-name') as HTMLInputElement)?.value;
+              const emailInput = (document.getElementById('auth-email') as HTMLInputElement)?.value;
+              
+              if (mode === 'signup' && !nameInput) {
+                showToast('Please enter your full name.', 'error');
+                return;
+              }
+
+              setStudent({
+                ...student,
+                fullName: nameInput || 'Registered Student',
+                email: emailInput || 'student@domain.com',
+                authState: mode === 'signup' ? 'verification_pending' : 'verified',
+                role: 'student'
+              });
+
+              if (mode === 'signup') {
+                showToast('Account registered! Please upload your Student ID to complete verification.', 'info');
+                navigate('verification');
+              } else {
+                showToast('Logged in successfully!', 'success');
+                navigate('dashboard');
+              }
+            }}
+            className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-xl"
+          >
+            {mode === 'signup' ? 'Register & Continue to ID Verification' : 'Sign In'}
+          </button>
+        </div>
+      </div>
+    );
+  };
 
     return (
       <div className="max-w-md mx-auto py-12 px-4">
