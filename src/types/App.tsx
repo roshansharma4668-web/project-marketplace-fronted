@@ -51,12 +51,16 @@ export default function App() {
   const [currentRoute, setCurrentRoute] = useState<PageRoute>('home');
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const [student, setStudent] = useState<StudentProfile>(() => {
+const [student, setStudent] = useState<StudentProfile>(() => {
     const saved = localStorage.getItem('cpm_student_session');
     if (saved) {
-      try { return JSON.parse(saved); } catch { /* fallback */ }
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed && parsed.authState && parsed.authState !== 'logged_out' && parsed.email) {
+          return parsed;
+        }
+      } catch { /* fallback */ }
     }
-    // Default to logged out for real client flow
     return { ...INITIAL_STUDENT, authState: 'logged_out' };
   });
 
