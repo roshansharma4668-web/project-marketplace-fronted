@@ -1930,36 +1930,51 @@ export default function App() {
             <div className="text-2xl font-extrabold text-emerald-600 mt-1">{meetings.length}</div>
           </div>
         </div>
-
-        {adminTab === 'verifications' && (
+{adminTab === 'verifications' && (
           <div className="bg-white rounded-2xl border border-slate-200 p-6 space-y-4">
             <h2 className="text-lg font-bold text-slate-900">Student ID Verification Queue (Restricted Admin Access)</h2>
-            <div className="p-4 rounded-xl border border-slate-200 flex flex-wrap items-center justify-between gap-4">
-              <div>
-                <div className="font-bold text-sm text-slate-900">{student.fullName} ({student.id})</div>
-                <div className="text-xs text-slate-600">{student.collegeName} • Submitted ID: <span className="font-mono">{student.idDocumentName}</span></div>
-                <div className="text-xs mt-1">Current State: <strong className="uppercase">{student.authState}</strong></div>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => {
-                    setStudent({ ...student, authState: 'verified' });
-                    showToast('Student ID Approved!', 'success');
-                  }}
-                  className="px-3.5 py-1.5 bg-emerald-600 text-white text-xs font-bold rounded-lg"
-                >
-                  Approve ID
-                </button>
-                <button
-                  onClick={() => {
-                    setStudent({ ...student, authState: 'verification_rejected' });
-                    showToast('Student ID Rejected.', 'error');
-                  }}
-                  className="px-3.5 py-1.5 bg-rose-600 text-white text-xs font-bold rounded-lg"
-                >
-                  Reject ID
-                </button>
-              </div>
+            <p className="text-xs text-slate-500 mb-4">
+              Here the admin can securely view submitted ID cards of registered students and verify them.
+            </p>
+            
+            {/* Dummy List of Pending Students to show to Client */}
+            <div className="space-y-3">
+              {[
+                { id: 'STU-1029', name: 'Rahul Kumar', college: 'National Institute of Technology', idFront: 'rahul_id_front.jpg', idBack: 'rahul_id_back.jpg' },
+                { id: 'STU-1030', name: 'Priya Singh', college: 'St. Xavier\'s College', idFront: 'priya_college_id.pdf', idBack: null },
+                { id: 'STU-1031', name: 'Aman Verma', college: 'BIT Mesra', idFront: 'aman_id_2026.png', idBack: 'aman_id_back.png' }
+              ].map((pendingStudent) => (
+                <div key={pendingStudent.id} className="p-4 rounded-xl border border-slate-200 flex flex-wrap items-center justify-between gap-4 bg-slate-50">
+                  <div>
+                    <div className="font-bold text-sm text-slate-900">{pendingStudent.name} <span className="text-xs font-mono text-slate-500 font-normal">({pendingStudent.id})</span></div>
+                    <div className="text-xs text-slate-600 mt-1">{pendingStudent.college}</div>
+                    <div className="flex gap-2 mt-2">
+                       <span className="text-[10px] bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded font-mono font-semibold flex items-center gap-1">
+                         <FileText className="w-3 h-3" /> {pendingStudent.idFront}
+                       </span>
+                       {pendingStudent.idBack && (
+                         <span className="text-[10px] bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded font-mono font-semibold flex items-center gap-1">
+                           <FileText className="w-3 h-3" /> {pendingStudent.idBack}
+                         </span>
+                       )}
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => showToast(`Approved ID for ${pendingStudent.name}. They can now access PPTs.`, 'success')}
+                      className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition-colors"
+                    >
+                      Approve
+                    </button>
+                    <button
+                      onClick={() => showToast(`Rejected ID for ${pendingStudent.name}.`, 'error')}
+                      className="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-lg transition-colors"
+                    >
+                      Reject
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         )}
