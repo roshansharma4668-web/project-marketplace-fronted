@@ -47,6 +47,7 @@ const CATEGORIES: { name: ProjectCategory; icon: React.ReactNode; count: string 
 ];
 
 export default function App() {
+  // Persistent state using localStorage
   const [currentRoute, setCurrentRoute] = useState<PageRoute>('home');
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -66,6 +67,11 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('cpm_student_session', JSON.stringify(student));
   }, [student]);
+
+  // UPI / Payout Method State
+  const [upiLinked, setUpiLinked] = useState<string | null>(localStorage.getItem('cpm_upi_id'));
+  const [upiInput, setUpiInput] = useState('');
+  const [showUpiOtp, setShowUpiOtp] = useState(false);
 
   const [projects, setProjects] = useState<ProjectDTO[]>(INITIAL_PROJECTS);
   const [activeProjectId, setActiveProjectId] = useState<string>('PRJ-101');
@@ -414,6 +420,7 @@ export default function App() {
         </div>
       </section>
 
+      {/* FULLY RESTORED: How the Marketplace Works & Why Choose Us */}
       <section className="py-16 px-4 max-w-7xl mx-auto">
         <div className="text-center max-w-2xl mx-auto mb-12">
           <h2 className="text-2xl sm:text-3xl font-bold text-slate-900">How the Marketplace Works</h2>
@@ -727,15 +734,25 @@ export default function App() {
                   {renderHeartCredits('sm')}
                 </div>
 
-                <button
-                  onClick={() => handleOpenPptPreview(activeProject)}
-                  className="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-xl shadow-sm transition-all flex items-center justify-center gap-2"
-                >
-                  <Eye className="w-4 h-4" />
-                  {isViewed ? 'Re-open PPT Preview (0 Credits)' : 'View PPT Preview (Uses 1 ♥)'}
-                </button>
+                {/* MODIFIED: PPT Lock Mechanism */}
+                {student.authState === 'verified' ? (
+                  <button
+                    onClick={() => handleOpenPptPreview(activeProject)}
+                    className="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-xl shadow-sm transition-all flex items-center justify-center gap-2"
+                  >
+                    <Eye className="w-4 h-4" />
+                    {isViewed ? 'Re-open PPT Preview (0 Credits)' : 'View PPT Preview (Uses 1 ♥)'}
+                  </button>
+                ) : (
+                  <button
+                    disabled
+                    className="w-full py-2.5 px-4 bg-slate-200 text-slate-500 text-sm font-bold rounded-xl flex items-center justify-center gap-2 cursor-not-allowed border border-slate-300"
+                  >
+                    <Lock className="w-4 h-4" /> Locked: Verify ID to View PPT
+                  </button>
+                )}
 
-                {isViewed && (
+                {isViewed && student.authState === 'verified' && (
                   <button
                     onClick={() => handleToggleSelectProject(activeProject.id)}
                     className={`w-full py-2.5 px-4 text-xs font-bold rounded-xl border transition-all flex items-center justify-center gap-1.5 ${
@@ -751,7 +768,7 @@ export default function App() {
                   </button>
                 )}
 
-                {isSelected && (
+                {isSelected && student.authState === 'verified' && (
                   <button
                     onClick={() => navigate('schedule-meet')}
                     className="w-full py-2 px-4 bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5"
@@ -1010,7 +1027,7 @@ export default function App() {
             onClick={() => {
               const nameInput = (document.getElementById('signup-name') as HTMLInputElement)?.value;
               const emailInput = (document.getElementById('auth-email') as HTMLInputElement)?.value;
-
+              
               if (mode === 'signup' && !nameInput) {
                 showToast('Please enter your full name.', 'error');
                 return;
@@ -1287,8 +1304,10 @@ export default function App() {
               </div>
               <h2 className="font-bold text-base">{student.fullName}</h2>
               <p className="text-xs text-indigo-200 mt-0.5">{student.collegeName}</p>
-              <span className="mt-2 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
-                <ShieldCheck className="w-3.5 h-3.5" /> {student.authState.toUpperCase()}
+              <span className={`mt-2 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
+                student.authState === 'verified' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/30' : 'bg-amber-500/20 text-amber-300 border border-amber-400/30'
+              }`}>
+                <ShieldCheck className="w-3.5 h-3.5" /> {student.authState.toUpperCase().replace('_', ' ')}
               </span>
             </div>
 
@@ -1392,6 +1411,40 @@ export default function App() {
                   </div>
                 </div>
               </div>
+
+              {/* MODIFIED: Upload ID Card Front & Back Panel */}
+              {student.authState !== 'verified' && (
+                <div className="mt-6 bg-amber-50 border border-amber-200 rounded-2xl p-6">
+                  <div className="flex items-center gap-2 mb-2">
+                    <ShieldCheck className="w-5 h-5 text-amber-600" />
+                    <h3 className="text-lg font-bold text-amber-900">Complete Your Student Verification</h3>
+                  </div>
+                  <p className="text-xs text-amber-800 mb-4">
+                    Please upload clear images of the front and back of your valid college/university ID card. Without verification, PPT previews are locked.
+                  </p>
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div className="border-2 border-dashed border-amber-300 rounded-xl p-5 text-center bg-white hover:bg-amber-50/50 transition-colors cursor-pointer">
+                      <Upload className="w-6 h-6 text-amber-500 mx-auto mb-2" />
+                      <label className="block text-xs font-bold text-slate-700 mb-1">ID Card (Front Side)</label>
+                      <input type="file" className="text-[10px] text-slate-500 w-full" />
+                    </div>
+                    <div className="border-2 border-dashed border-amber-300 rounded-xl p-5 text-center bg-white hover:bg-amber-50/50 transition-colors cursor-pointer">
+                      <Upload className="w-6 h-6 text-amber-500 mx-auto mb-2" />
+                      <label className="block text-xs font-bold text-slate-700 mb-1">ID Card (Back Side)</label>
+                      <input type="file" className="text-[10px] text-slate-500 w-full" />
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setStudent({ ...student, authState: 'verification_pending' });
+                      showToast('ID documents submitted for admin review!', 'success');
+                    }}
+                    className="mt-4 w-full py-2.5 bg-amber-500 hover:bg-amber-600 text-amber-950 text-sm font-bold rounded-xl transition-all"
+                  >
+                    Submit Documents for Verification
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
@@ -1489,6 +1542,136 @@ export default function App() {
           )}
 
           {dashboardTab === 'support' && renderSupportSection()}
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderReferralSection = () => (
+    <div className="bg-white rounded-2xl border border-slate-200 p-6 space-y-6">
+      <div className="bg-gradient-to-r from-indigo-900 to-slate-900 text-white p-6 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="space-y-2">
+          <span className="px-2.5 py-0.5 bg-emerald-500/20 text-emerald-300 text-xs font-bold rounded-full">
+            20% Referral Reward Program
+          </span>
+          <h3 className="text-xl font-bold">Refer Classmates & Earn 20% of Eligible Purchases</h3>
+          <p className="text-xs text-slate-300 max-w-xl">
+            Example: On an eligible ₹1,000 project purchase by your friend, you receive ₹200 after backend order verification.
+          </p>
+        </div>
+        <div className="bg-white/10 p-4 rounded-xl border border-white/15 shrink-0 space-y-2">
+          <div className="text-[11px] text-indigo-200 uppercase font-mono">Your Referral Code: {student.referralCode}</div>
+          <div className="flex items-center gap-2">
+            <input
+              readOnly
+              value={student.referralLink}
+              className="bg-slate-950/80 text-white text-xs font-mono px-3 py-2 rounded-lg border border-white/10 w-56"
+            />
+            <button
+              onClick={() => {
+                navigator.clipboard?.writeText(student.referralLink);
+                showToast('Referral link copied to clipboard!', 'success');
+              }}
+              className="px-3 py-2 bg-emerald-500 hover:bg-emerald-600 text-slate-950 text-xs font-bold rounded-lg flex items-center gap-1"
+            >
+              <Copy className="w-3.5 h-3.5" /> Copy
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* MODIFIED: Receive Payment UI Flow (UPI Linking) */}
+      <div className="border border-slate-200 rounded-xl p-5">
+        <h4 className="font-bold text-sm text-slate-900 mb-2">Payout Method (Receive Rewards)</h4>
+        {upiLinked ? (
+          <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between">
+            <div>
+              <div className="text-xs text-emerald-800 font-semibold">Linked UPI ID / Phone No.</div>
+              <div className="font-mono text-sm font-bold text-emerald-900 mt-0.5">{upiLinked}</div>
+            </div>
+            <CheckCircle2 className="w-6 h-6 text-emerald-600" />
+          </div>
+        ) : (
+          <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
+            <p className="text-xs text-slate-600">Link your UPI ID or Phone Number to receive referral payouts directly to your bank account.</p>
+            {!showUpiOtp ? (
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Enter UPI ID or Phone Number"
+                  value={upiInput}
+                  onChange={(e) => setUpiInput(e.target.value)}
+                  className="flex-1 px-3 py-2 text-sm border border-slate-300 rounded-lg"
+                />
+                <button
+                  onClick={() => {
+                    if (!upiInput) return showToast('Please enter a valid UPI ID or Phone No.', 'error');
+                    setShowUpiOtp(true);
+                    showToast('OTP sent to your registered mobile/email for linking.', 'info');
+                  }}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg transition-colors"
+                >
+                  Send OTP
+                </button>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Enter 4-digit OTP"
+                  maxLength={4}
+                  className="flex-1 px-3 py-2 text-sm border border-slate-300 rounded-lg font-mono tracking-widest"
+                />
+                <button
+                  onClick={() => {
+                    setUpiLinked(upiInput);
+                    localStorage.setItem('cpm_upi_id', upiInput);
+                    setShowUpiOtp(false);
+                    showToast('Payment method linked successfully!', 'success');
+                  }}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition-colors"
+                >
+                  Verify & Link
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div>
+        <h4 className="font-bold text-sm text-slate-900 mb-3">Authoritative Referral & Reward History</h4>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr className="border-b border-slate-200 text-slate-500 bg-slate-50">
+                <th className="py-2.5 px-3">Student</th>
+                <th className="py-2.5 px-3">College</th>
+                <th className="py-2.5 px-3">Date</th>
+                <th className="py-2.5 px-3">Purchase Amount</th>
+                <th className="py-2.5 px-3">Authoritative Reward (20%)</th>
+                <th className="py-2.5 px-3">Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-200">
+              {referrals.map((r) => (
+                <tr key={r.id}>
+                  <td className="py-3 px-3 font-bold text-slate-900">{r.referredStudentName}</td>
+                  <td className="py-3 px-3 text-slate-600">{r.college}</td>
+                  <td className="py-3 px-3 text-slate-500">{r.date}</td>
+                  <td className="py-3 px-3 font-mono">₹{r.purchaseAmount}</td>
+                  <td className="py-3 px-3 font-mono font-bold text-emerald-700">₹{r.rewardAmount}</td>
+                  <td className="py-3 px-3">
+                    <span className={`px-2 py-0.5 rounded-full font-bold text-[11px] ${
+                      r.status === 'Reward Approved' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                    }`}>
+                      {r.status}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
@@ -1599,6 +1782,85 @@ export default function App() {
       </div>
     );
   };
+
+  const renderSupportSection = () => (
+    <div className="max-w-5xl mx-auto py-8 px-4 grid md:grid-cols-12 gap-8">
+      <div className="md:col-span-5 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+        <h2 className="text-lg font-bold text-slate-900 mb-1">Create Support Ticket</h2>
+        <p className="text-xs text-slate-500 mb-4">Our student support desk responds within 4 working hours.</p>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            const fd = new FormData(e.currentTarget);
+            const newTicket: SupportTicket = {
+              ticketId: `TCK-${Math.floor(1000 + Math.random() * 9000)}`,
+              category: fd.get('category') as string,
+              subject: fd.get('subject') as string,
+              description: fd.get('description') as string,
+              submissionDate: '26 Oct 2026',
+              status: 'Open',
+            };
+            setTickets((prev) => [newTicket, ...prev]);
+            e.currentTarget.reset();
+            showToast(`Support Ticket ${newTicket.ticketId} submitted successfully!`, 'success');
+          }}
+          className="space-y-3"
+        >
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1">Issue Category</label>
+            <select name="category" className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg bg-white">
+              <option>Account / Login</option>
+              <option>Student Verification</option>
+              <option>PPT Preview Access</option>
+              <option>Project Selection</option>
+              <option>Meeting Scheduling</option>
+              <option>Payment Issues</option>
+              <option>Project Delivery</option>
+              <option>Refund Requests</option>
+              <option>General Queries</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1">Subject</label>
+            <input name="subject" required placeholder="Brief summary of the issue" className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg" />
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1">Description</label>
+            <textarea name="description" required rows={3} placeholder="Provide Order ID or Project ID if applicable..." className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg" />
+          </div>
+          <button type="submit" className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl">
+            Submit Ticket
+          </button>
+        </form>
+      </div>
+
+      <div className="md:col-span-7 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+        <h2 className="text-lg font-bold text-slate-900 mb-4">Ticket History</h2>
+        <div className="space-y-3">
+          {tickets.map((t) => (
+            <div key={t.ticketId} className="p-4 rounded-xl border border-slate-200 flex items-start justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2 text-xs">
+                  <span className="font-mono font-bold text-indigo-600">{t.ticketId}</span>
+                  <span className="text-slate-400">•</span>
+                  <span className="font-semibold text-slate-700">{t.category}</span>
+                  <span className="text-slate-400">•</span>
+                  <span className="text-slate-500">{t.submissionDate}</span>
+                </div>
+                <h3 className="font-bold text-slate-900 text-sm mt-1">{t.subject}</h3>
+                <p className="text-xs text-slate-600 mt-1">{t.description}</p>
+              </div>
+              <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold shrink-0 ${
+                t.status === 'Resolved' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+              }`}>
+                {t.status}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 
   const renderAdminPanel = () => {
     if (student.role !== 'admin') {
